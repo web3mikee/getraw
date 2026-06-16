@@ -13,8 +13,21 @@ function generateCpn(): string {
 
 let _innertube: Awaited<ReturnType<typeof createInnertube>> | null = null;
 
+async function bunEvaluate(data: { output: string }) {
+  const fn = new Function(data.output);
+  return fn();
+}
+
 async function createInnertube() {
-  const { Innertube } = await import("youtubei.js");
+  // Import youtubei.js — this loads the node.js platform which sets up all shims
+  const { Innertube, Platform } = await import("youtubei.js");
+
+  // Override only the eval shim with Bun-native JS execution
+  // Platform.shim is the live object that Player.decipher() reads from
+  if (Platform.shim) {
+    (Platform.shim as Record<string, unknown>).eval = bunEvaluate;
+  }
+
   return Innertube.create({ generate_session_locally: true });
 }
 
