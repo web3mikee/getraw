@@ -41,7 +41,8 @@ export class GoogleDriveExtractor extends BaseExtractor {
     const contentLength = response.headers.get("content-length");
     const filesize = contentLength ? parseInt(contentLength) : undefined;
 
-    return this.buildInfo(fileId, title, ext, response.url, filesize, url);
+    const resolvedUrl = response.url || downloadUrl;
+    return this.buildInfo(fileId, title, ext, resolvedUrl, filesize, url);
   }
 
   private async handleVirusScanPage(html: string, fileId: string, originalUrl: string): Promise<InfoDict> {
