@@ -1,10 +1,20 @@
 # getraw
 
-Fast media downloader CLI built natively in Bun/TypeScript.
+Fast media downloader CLI built natively in Bun/TypeScript. A yt-dlp replacement with native JS execution.
+
+[![npm](https://img.shields.io/npm/v/getraw)](https://www.npmjs.com/package/getraw)
+[![tests](https://img.shields.io/badge/tests-386%20passing-brightgreen)]()
+[![license](https://img.shields.io/badge/license-MIT-blue)]()
+
+## Why getraw?
+
+- **Native JS execution** — YouTube's player code runs natively in Bun. No external runtime needed (yt-dlp requires Deno/Node).
+- **50ms cold startup** — Bun-powered, not Python.
+- **30+ sites** — YouTube, Twitter, TikTok, Instagram, Reddit, Twitch, and more.
+- **Zero API keys** — All extractors use public endpoints, guest tokens, and page scraping.
+- **Agent-ready** — Install as an AI agent skill: `npx skills add onkits/getraw`
 
 ## Installation
-
-### Global install (Bun required)
 
 ```sh
 bun install -g getraw
@@ -13,53 +23,35 @@ bun install -g getraw
 ### From source
 
 ```sh
-git clone https://github.com/web3mikee/getraw
+git clone https://github.com/onkits/getraw
 cd getraw
 bun install
 ```
 
-Run directly from source:
+### As an AI agent skill
 
 ```sh
-bun run src/cli/index.ts <URL>
+npx skills add onkits/getraw
 ```
 
-Build a standalone binary:
-
-```sh
-bun run build
-./getraw <URL>
-```
+Works with Claude Code, Cursor, Copilot, Codex, Windsurf, and 50+ other agents.
 
 ## Quick Start
 
-Download a video at best quality:
-
 ```sh
+# Download a video
 getraw https://www.youtube.com/watch?v=dQw4w9WgXcQ
-```
 
-Extract audio as MP3:
-
-```sh
+# Extract audio as MP3
 getraw -x --audio-format mp3 https://soundcloud.com/artist/track
-```
 
-List all available formats before downloading:
-
-```sh
+# List available formats
 getraw -F https://vimeo.com/123456789
-```
 
-Download a specific format and write subtitles:
+# Download specific quality with subtitles
+getraw -f "bestvideo[height<=1080]+bestaudio" --write-subs https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
-```sh
-getraw -f "bestvideo[height<=1080]+bestaudio" --write-subs --sub-langs en https://www.youtube.com/watch?v=dQw4w9WgXcQ
-```
-
-Dump extracted metadata as JSON without downloading:
-
-```sh
+# Get metadata as JSON (no download)
 getraw -j https://www.reddit.com/r/videos/comments/abc123/some_post/
 ```
 
@@ -69,97 +61,96 @@ getraw -j https://www.reddit.com/r/videos/comments/abc123/some_post/
 Usage: getraw [OPTIONS] URL [URL...]
 ```
 
-| Flag | Short | Type | Default | Description |
-|------|-------|------|---------|-------------|
-| `--format` | `-f` | string | `bv*+ba/b` | Format selection string |
-| `--output` | `-o` | string | `%(title)s [%(id)s].%(ext)s` | Output filename template |
-| `--extract-audio` | `-x` | boolean | false | Extract audio only |
-| `--audio-format` | | string | `mp3` | Audio format (`mp3`, `aac`, `flac`, etc.) |
-| `--audio-quality` | | string | `5` | Audio quality (0–10 or bitrate) |
-| `--write-subs` | | boolean | false | Write subtitles to file |
-| `--sub-langs` | | string | `en` | Subtitle languages |
-| `--list-formats` | `-F` | boolean | false | List available formats |
-| `--dump-json` | `-j` | boolean | false | Dump info JSON to stdout |
-| `--quiet` | `-q` | boolean | false | Suppress output |
-| `--verbose` | `-v` | boolean | false | Verbose output |
-| `--no-progress` | | boolean | false | Disable progress bar |
-| `--retries` | `-R` | number | `3` | Number of retries |
-| `--rate-limit` | `-r` | number | none | Rate limit in bytes/sec |
-| `--proxy` | | string | none | Proxy URL |
-| `--cookies` | | string | none | Cookie file path |
-| `--user-agent` | | string | `getraw/0.0.0` | Custom User-Agent |
-| `--referer` | | string | none | Custom Referer header |
-| `--embed-thumbnail` | | boolean | false | Embed thumbnail in output file |
-| `--embed-subs` | | boolean | false | Embed subtitles in output file |
-| `--merge-output-format` | | string | none | Output container for merging streams |
-| `--ffmpeg-location` | | string | none | Path to ffmpeg binary |
-| `--version` | `-V` | boolean | false | Print version |
-| `--help` | `-h` | boolean | false | Show help |
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--format` | `-f` | `bv*+ba/b` | Format selection string |
+| `--output` | `-o` | `%(title)s [%(id)s].%(ext)s` | Output filename template |
+| `--extract-audio` | `-x` | | Extract audio only |
+| `--audio-format` | | `mp3` | Audio format (mp3, aac, flac, wav, opus) |
+| `--write-subs` | | | Write subtitles to file |
+| `--sub-langs` | | `en` | Subtitle languages |
+| `--list-formats` | `-F` | | List available formats |
+| `--dump-json` | `-j` | | Dump info JSON to stdout |
+| `--quiet` | `-q` | | Suppress output |
+| `--verbose` | `-v` | | Verbose output |
+| `--retries` | `-R` | `3` | Number of retries |
+| `--rate-limit` | `-r` | | Rate limit in bytes/sec |
+| `--proxy` | | | Proxy URL |
+| `--cookies` | | | Cookie file path (Netscape format) |
+| `--embed-thumbnail` | | | Embed thumbnail in output |
+| `--embed-subs` | | | Embed subtitles in output |
+| `--version` | `-V` | | Print version |
+| `--help` | `-h` | | Show help |
 
-## Supported Sites
+## Supported Sites (30+)
 
-| Site | Extractor name | URL pattern | Subtitles |
-|------|---------------|-------------|-----------|
-| YouTube | `youtube` | `youtube.com/watch`, `youtu.be/`, `youtube.com/shorts/`, `youtube.com/live/`, `youtube.com/playlist`, `youtube.com/channel/`, `youtube.com/@handle` | Yes (manual + auto-generated) |
-| Vimeo | `vimeo` | `vimeo.com/<id>`, `player.vimeo.com/video/<id>`, channels, groups | No |
-| Twitter / X | `twitter` | `twitter.com/*/status/*`, `x.com/*/status/*` | No |
-| Twitter Spaces | `twitter:spaces` | `twitter.com/i/spaces/*`, `x.com/i/spaces/*` | No |
-| TikTok | `tiktok` | `tiktok.com/@user/video/<id>`, `vm.tiktok.com/*` | No |
-| TikTok User | `tiktok:user` | `tiktok.com/@username` | No |
-| Instagram | `instagram` | `instagram.com/p/*`, `instagram.com/reel/*`, `instagram.com/reels/*` | No |
-| Instagram Reels feed | `instagram:reels` | `instagram.com/reels/` | No |
-| Twitch VOD | `twitch:vod` | `twitch.tv/videos/<id>` | No |
-| Twitch Clip | `twitch:clip` | `twitch.tv/*/clip/*`, `clips.twitch.tv/*` | No |
-| Twitch Live | `twitch:live` | `twitch.tv/<channel>` | No |
-| Kick VOD | `kick` | `kick.com/video/<id>` | No |
-| Kick Clip | `kick:clips` | `kick.com/<channel>/clips/<id>` | No |
-| Kick Live | `kick:live` | `kick.com/<channel>` | No |
-| Reddit | `reddit` | `reddit.com/r/*/comments/*`, `v.redd.it/*` | No |
-| Reddit Gallery | `reddit:gallery` | `reddit.com/r/*/comments/*`, `reddit.com/gallery/*` | No |
-| SoundCloud | `soundcloud` | `soundcloud.com/<user>/<track>` | No |
-| SoundCloud Playlist | `soundcloud:playlist` | `soundcloud.com/<user>/sets/<playlist>` | No |
-| Bilibili | `bilibili` | `bilibili.com/video/BV*`, `bilibili.com/video/av*` | No |
-| Bilibili Bangumi | `bilibili:bangumi` | `bilibili.com/bangumi/play/ep*`, `bilibili.com/bangumi/play/ss*` | No |
-| Niconico | `niconico` | `nicovideo.jp/watch/sm*`, `nicovideo.jp/watch/nm*` | No |
-| Bandcamp | `bandcamp` | `*.bandcamp.com/track/*`, `*.bandcamp.com/album/*` | No |
-| Dailymotion | `dailymotion` | `dailymotion.com/video/<id>` | No |
-| Streamable | `streamable` | `streamable.com/<id>` | No |
-| Coub | `coub` | `coub.com/view/*`, `coub.com/embed/*` | No |
-| Imgur | `imgur` | `imgur.com/<id>`, `imgur.com/a/<id>`, `imgur.com/gallery/<id>`, `i.imgur.com/*` | No |
-| Rumble | `rumble` | `rumble.com/v*.html`, `rumble.com/embed/*` | No |
-| Odysee | `odysee` | `odysee.com/@*:*/<slug>`, `lbry.tv/@*:*/<slug>` | No |
-| TED | `ted` | `ted.com/talks/<slug>` | Yes |
-| PeerTube | `peertube` | Any PeerTube instance: `<host>/videos/watch/*`, `<host>/w/*`, `<host>/videos/embed/*` | Yes |
-| Google Drive | `google-drive` | `drive.google.com/file/d/*`, `docs.google.com/file/d/*` | No |
-| Dropbox | `dropbox` | `dropbox.com/s/*`, `dropbox.com/sh/*`, `dropbox.com/scl/fo/*` | No |
-| Archive.org | `archive.org` | `archive.org/details/*`, `archive.org/download/*` | No |
-| Spotify | `spotify` | `open.spotify.com/episode/<id>` | No |
-| Generic | `generic` | Any `http://` or `https://` URL (fallback) | No |
+| Site | URL Patterns |
+|------|-------------|
+| **YouTube** | youtube.com, youtu.be, shorts, live, playlists, channels |
+| **Twitter/X** | twitter.com/\*/status/\*, x.com/\*/status/\*, Spaces |
+| **TikTok** | tiktok.com/@\*/video/\*, vm.tiktok.com, user profiles |
+| **Instagram** | instagram.com/p/\*, /reel/\*, /reels/ |
+| **Reddit** | reddit.com/r/\*/comments/\*, v.redd.it, galleries |
+| **Twitch** | VODs, clips, live streams |
+| **Vimeo** | vimeo.com/\*, player embeds |
+| **SoundCloud** | Tracks, playlists, albums |
+| **Bilibili** | Videos, bangumi/anime |
+| **Dailymotion** | Videos |
+| **Bandcamp** | Tracks, albums |
+| **Kick** | VODs, clips, live |
+| **Rumble** | Videos |
+| **TED** | Talks (with multi-language subtitles) |
+| **Niconico** | Videos |
+| **Streamable** | Videos |
+| **Imgur** | Videos, GIFs, albums |
+| **Coub** | Videos (video + audio merge) |
+| **Odysee/LBRY** | Videos |
+| **PeerTube** | Any instance |
+| **Spotify** | Podcast episodes (30s preview) |
+| **Archive.org** | Any public media |
+| **Google Drive** | Public files |
+| **Dropbox** | Public share links |
+| **+ more** | Generic fallback for direct media URLs |
 
-> Spotify: only 30-second preview audio is available without authentication. Full episode audio requires Spotify auth (not currently implemented).
+See [docs/supported-sites.md](docs/supported-sites.md) for full details.
 
-See [docs/supported-sites.md](docs/supported-sites.md) for full format and URL pattern details.
+## For AI Agents
+
+getraw is designed to be used by AI agents. Key commands for automation:
+
+```sh
+# Get structured metadata
+getraw --dump-json "URL" | jq '.title, .duration, .formats[0].url'
+
+# Download transcript for summarization
+getraw --write-subs --sub-langs en --skip-download "URL"
+
+# Extract audio for transcription pipelines
+getraw -x --audio-format wav -o "audio.wav" "URL"
+
+# Batch download
+getraw URL1 URL2 URL3
+```
+
+Install as an agent skill for any compatible AI coding agent:
+
+```sh
+npx skills add onkits/getraw
+```
 
 ## Building from Source
 
-Requires [Bun](https://bun.sh) v1.0 or later.
-
 ```sh
-git clone https://github.com/web3mikee/getraw
+git clone https://github.com/onkits/getraw
 cd getraw
 bun install
-bun run build    # produces ./getraw binary
-```
-
-Run tests:
-
-```sh
-bun test
+bun test         # 386 tests
+bun run build    # standalone binary
 ```
 
 ## Writing a Custom Extractor
 
-See [docs/plugin-guide.md](docs/plugin-guide.md) for the `BaseExtractor` interface and a minimal example.
+See [docs/plugin-guide.md](docs/plugin-guide.md) for the `BaseExtractor` interface and examples.
 
 ## License
 

@@ -1,6 +1,6 @@
 {
   "name": "getraw",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "Fast media downloader CLI built natively in Bun/TypeScript",
   "type": "module",
   "bin": {
@@ -25,6 +25,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/web3mikee/getraw"
+    "url": "https://github.com/onkits/getraw"
   }
 }
