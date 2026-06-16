@@ -1,6 +1,6 @@
 {
   "name": "getraw",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Fast media downloader CLI built natively in Bun/TypeScript",
   "type": "module",
   "bin": {
