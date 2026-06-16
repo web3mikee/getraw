@@ -20,7 +20,7 @@ export const FLAG_DEFS: FlagDef[] = [
   { long: "--list-formats", short: "-F", description: "List available formats", type: "boolean", key: "listFormats" },
   { long: "--dump-json", short: "-j", description: "Dump info JSON to stdout", type: "boolean", key: "dumpJson" },
   { long: "--quiet", short: "-q", description: "Suppress output", type: "boolean", key: "quiet" },
-  { long: "--verbose", short: "-v", description: "Verbose output", type: "boolean", key: "verbose" },
+  { long: "--verbose", description: "Verbose output", type: "boolean", key: "verbose" },
   { long: "--no-progress", description: "Disable progress bar", type: "boolean", key: "noProgress" },
   { long: "--retries", short: "-R", description: "Number of retries", type: "number", key: "retries" },
   { long: "--rate-limit", short: "-r", description: "Rate limit in bytes/sec", type: "number", key: "rateLimit" },
@@ -32,7 +32,7 @@ export const FLAG_DEFS: FlagDef[] = [
   { long: "--embed-subs", description: "Embed subtitles in output", type: "boolean", key: "embedSubs" },
   { long: "--merge-output-format", description: "Output container for merging", type: "string", key: "mergeOutputFormat" },
   { long: "--ffmpeg-location", description: "Path to ffmpeg binary", type: "string", key: "ffmpegLocation" },
-  { long: "--version", short: "-V", description: "Print version", type: "boolean", key: "version" },
+  { long: "--version", short: "-v", description: "Print version", type: "boolean", key: "version" },
   { long: "--help", short: "-h", description: "Show help", type: "boolean", key: "help" },
 ];
 
