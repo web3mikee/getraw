@@ -39,7 +39,7 @@ function parseAndRender(content: string): string {
   const output: string[] = [];
 
   output.push("");
-  output.push(`${COLORS.bold}${COLORS.cyan}  dlpx — Agent Dashboard${COLORS.reset}`);
+  output.push(`${COLORS.bold}${COLORS.cyan}  getraw — Agent Dashboard${COLORS.reset}`);
   output.push(`${COLORS.dim}  ${new Date().toLocaleTimeString()}${COLORS.reset}`);
   output.push("");
 

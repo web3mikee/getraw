@@ -44,7 +44,7 @@ export class TwitterExtractor extends BaseExtractor {
     const apiUrl = `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&lang=en&features=tfw_timeline_list%3A%3Btfw_follower_count_sunset%3Atrue&token=0`;
     const resp = await fetch(apiUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; dlpx/1.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; getraw/1.0)",
         Accept: "application/json",
         Referer: "https://platform.twitter.com/",
         Origin: "https://platform.twitter.com",

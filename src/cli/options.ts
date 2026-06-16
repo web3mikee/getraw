@@ -81,9 +81,9 @@ export function parseArgs(args: string[]): Options {
 
 export function printHelp(): void {
   const lines = [
-    "dlpx — Fast media downloader",
+    "getraw — Fast media downloader",
     "",
-    "Usage: dlpx [OPTIONS] URL [URL...]",
+    "Usage: getraw [OPTIONS] URL [URL...]",
     "",
     "Options:",
   ];

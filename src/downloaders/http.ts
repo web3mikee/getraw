@@ -174,7 +174,7 @@ export class HttpDownloader extends Downloader {
       chunks.push({ start: i, end: Math.min(i + CHUNK_SIZE - 1, totalBytes - 1), index: idx });
     }
 
-    const tempDir = `/tmp/dlpx-http-${Date.now()}`;
+    const tempDir = `/tmp/getraw-http-${Date.now()}`;
     await Bun.$`mkdir -p ${tempDir}`.quiet();
 
     const baseHeaders = this.buildHeaders(options);

@@ -61,7 +61,7 @@ standard fetch()/WebSocket APIs. Full impersonation requires:
 2. Custom cipher suite ordering matching the target browser
 3. Custom TLS extensions ordering
 
-For now, dlpx sets a matching User-Agent header which satisfies most sites.
+For now, getraw sets a matching User-Agent header which satisfies most sites.
 Sites that perform JA3 fingerprint checking (e.g., some CDN bot detection) may
 require a future implementation using Bun FFI + uTLS or a headless browser approach.
 `;

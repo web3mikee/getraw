@@ -24,7 +24,7 @@ export class FragmentDownloader {
     options: FragmentDownloadOptions,
   ): Promise<void> {
     const concurrency = options.concurrency ?? 8;
-    const tempDir = options.tempDir ?? "/tmp/dlpx-fragments";
+    const tempDir = options.tempDir ?? "/tmp/getraw-fragments";
 
     await Bun.$`mkdir -p ${tempDir}`.quiet();
 

@@ -15,7 +15,7 @@ async function main(): Promise<void> {
   }
 
   if (options.version) {
-    process.stdout.write(`dlpx ${VERSION}\n`);
+    process.stdout.write(`getraw ${VERSION}\n`);
     process.exit(0);
   }
 

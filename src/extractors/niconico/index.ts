@@ -126,7 +126,7 @@ export class NiconicoExtractor extends BaseExtractor {
       };
 
       const sessionResp = await fetch(
-        `https://nvapi.nicovideo.jp/v1/watch/${videoId}/access-rights/hls?actionTrackId=dlpx_${Date.now()}`,
+        `https://nvapi.nicovideo.jp/v1/watch/${videoId}/access-rights/hls?actionTrackId=getraw_${Date.now()}`,
         {
           method: "POST",
           headers: {

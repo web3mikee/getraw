@@ -86,7 +86,7 @@ export class RedditExtractor extends BaseExtractor {
   private async _extractVReddIt(url: string): Promise<InfoDict> {
     const jsonUrl = url.endsWith("/") ? url + ".json" : url + "/.json";
     const response = await fetch(jsonUrl, {
-      headers: { "User-Agent": "dlpx/1.0" },
+      headers: { "User-Agent": "getraw/1.0" },
     });
     if (!response.ok) {
       throw new ExtractorError(`Reddit API returned ${response.status}`);
@@ -104,7 +104,7 @@ export class RedditExtractor extends BaseExtractor {
     const normalized = normalizeRedditUrl(url);
     const jsonUrl = normalized.replace(/\?.*$/, "").replace(/\/$/, "") + ".json";
     const response = await fetch(jsonUrl, {
-      headers: { "User-Agent": "dlpx/1.0" },
+      headers: { "User-Agent": "getraw/1.0" },
     });
     if (!response.ok) {
       throw new ExtractorError(`Reddit API returned ${response.status}`);
@@ -168,7 +168,7 @@ export class RedditExtractor extends BaseExtractor {
           width: videoData.width,
           height: videoData.height,
           format_note: "video+audio (merged)",
-          http_headers: { "User-Agent": "dlpx/1.0" },
+          http_headers: { "User-Agent": "getraw/1.0" },
         });
       }
     }

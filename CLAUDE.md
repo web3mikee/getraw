@@ -1,4 +1,4 @@
-# dlpx
+# getraw
 
 Fast media downloader CLI — yt-dlp replacement built natively in Bun/TypeScript.
 

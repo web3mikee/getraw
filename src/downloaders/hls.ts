@@ -154,7 +154,7 @@ export class HlsDownloader extends Downloader {
       segments.push(seg);
     }
 
-    const tempDir = `/tmp/dlpx-hls-${Date.now()}`;
+    const tempDir = `/tmp/getraw-hls-${Date.now()}`;
     const fragmenter = new FragmentDownloader();
     await fragmenter.downloadSegments(segments, filepath, {
       ...options,

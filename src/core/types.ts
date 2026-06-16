@@ -224,7 +224,7 @@ export const DEFAULT_OPTIONS: Options = {
   rateLimit: null,
   proxy: null,
   cookies: null,
-  userAgent: "dlpx/0.0.0",
+  userAgent: "getraw/0.0.0",
   referer: null,
   embedThumbnail: false,
   embedSubs: false,

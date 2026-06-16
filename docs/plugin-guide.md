@@ -1,6 +1,6 @@
 # Plugin Guide — Writing a Custom Extractor
 
-dlpx extractors are classes that extend `BaseExtractor` from `src/core/types.ts`. Once written, they are registered via `registerExtractor` from `src/extractors/base.ts`. dlpx then tries each registered extractor in order before falling back to the generic extractor.
+getraw extractors are classes that extend `BaseExtractor` from `src/core/types.ts`. Once written, they are registered via `registerExtractor` from `src/extractors/base.ts`. getraw then tries each registered extractor in order before falling back to the generic extractor.
 
 ## BaseExtractor Interface
 

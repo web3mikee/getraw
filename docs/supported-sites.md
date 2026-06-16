@@ -1,6 +1,6 @@
 # Supported Sites
 
-All extractors implement `BaseExtractor` from `src/core/types.ts`. The `_VALID_URL` regex for each is listed below — dlpx tests URLs against these in registration order, falling back to the `generic` extractor for any `http(s)://` URL.
+All extractors implement `BaseExtractor` from `src/core/types.ts`. The `_VALID_URL` regex for each is listed below — getraw tests URLs against these in registration order, falling back to the `generic` extractor for any `http(s)://` URL.
 
 | # | Extractor name | Site | URL pattern | Formats | Notes |
 |---|---------------|------|-------------|---------|-------|

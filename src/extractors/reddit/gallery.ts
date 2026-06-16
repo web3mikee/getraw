@@ -44,7 +44,7 @@ export class RedditGalleryExtractor extends BaseExtractor {
     const jsonUrl = normalized.replace(/\?.*$/, "").replace(/\/$/, "") + ".json";
 
     const response = await fetch(jsonUrl, {
-      headers: { "User-Agent": "dlpx/1.0" },
+      headers: { "User-Agent": "getraw/1.0" },
     });
     if (!response.ok) {
       throw new ExtractorError(`Reddit API returned ${response.status}`);

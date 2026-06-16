@@ -1,19 +1,19 @@
-# dlpx — Agent Status Board
+# getraw — Agent Status Board
 
 Last updated: 2026-06-16
 
 | # | Agent | Scope | Status | Notes |
 |---|-------|-------|--------|-------|
 | 1 | Scaffold | Project structure, types, core infra | DONE | Foundation complete |
-| 2 | YouTube Extractor | YouTube video/playlist extraction | PENDING | |
+| 2 | YouTube Extractor | YouTube video/playlist extraction | DONE | InnerTube API, sig/nsig decipher, captions, playlists, age-gate bypass, 25 tests passing |
 | 3 | Twitter/X Extractor | Twitter/X video extraction | PENDING | |
 | 4 | Instagram Extractor | Instagram reels/stories/posts | PENDING | |
 | 5 | TikTok Extractor | TikTok video extraction | PENDING | |
 | 6 | Reddit Extractor | Reddit video/gallery extraction | PENDING | |
 | 7 | Twitch Extractor | Twitch VOD/clip extraction | PENDING | |
 | 8 | SoundCloud Extractor | SoundCloud audio extraction | PENDING | |
-| 9 | HLS Downloader | m3u8/HLS stream downloading | PENDING | |
-| 10 | DASH Downloader | MPD/DASH stream downloading | PENDING | |
+| 9 | HLS Downloader | m3u8/HLS stream downloading | DONE | AES-128 decrypt, concurrent segments, master playlist variant selection |
+| 10 | DASH Downloader | MPD/DASH stream downloading | DONE | SegmentTemplate+SegmentList, multi-period, concurrent segments |
 | 11 | FFmpeg PostProcessor | Audio extract, merge, embed | PENDING | |
 | 12 | Subtitle PostProcessor | Subtitle download/convert/embed | PENDING | |
 | 13 | Networking | HTTP client, cookies, auth | PENDING | |

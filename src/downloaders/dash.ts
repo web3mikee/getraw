@@ -119,7 +119,7 @@ export class DashDownloader extends Downloader {
       throw new DownloadError("No segments found in MPD");
     }
 
-    const tempDir = `/tmp/dlpx-dash-${Date.now()}`;
+    const tempDir = `/tmp/getraw-dash-${Date.now()}`;
     const fragmenter = new FragmentDownloader();
     await fragmenter.downloadSegments(allSegments, filepath, {
       ...options,
