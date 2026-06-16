@@ -1,0 +1,26 @@
+{
+  "name": "dlpx",
+  "version": "0.0.0",
+  "description": "Fast media downloader CLI built natively in Bun/TypeScript",
+  "type": "module",
+  "bin": {
+    "dlpx": "./src/cli/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/cli/index.ts",
+    "test": "bun test",
+    "build": "bun build src/cli/index.ts --compile --outfile=dlpx",
+    "dashboard": "bun run tools/dashboard.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web3mikee/dlpx"
+  }
+}
