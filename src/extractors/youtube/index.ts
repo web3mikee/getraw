@@ -75,7 +75,7 @@ export class YouTubeExtractor extends BaseExtractor {
       throw new ExtractorError("Could not extract video info");
     }
 
-    const formats = await this.extractFormats(playerResponse.streamingData, pageData.html);
+    const formats = await this.extractFormats(playerResponse.streamingData, pageData.html, videoId);
 
     const thumbnails: Thumbnail[] = (details.thumbnail?.thumbnails ?? []).map((t) => ({
       url: t.url,
@@ -107,27 +107,104 @@ export class YouTubeExtractor extends BaseExtractor {
     return result;
   }
 
-  private async extractFormats(streamingData: StreamingData | undefined, pageHtml: string): Promise<Format[]> {
-    if (!streamingData) return [];
-
+  private async extractFormats(streamingData: StreamingData | undefined, pageHtml: string, videoId?: string): Promise<Format[]> {
     const cpn = generateCpn();
-    const allRawFormats: RawFormat[] = [
-      ...(streamingData.formats ?? []),
-      ...(streamingData.adaptiveFormats ?? []),
+    const formats: Format[] = [];
+
+    // First: get formats from page response (muxed formats with signatureCipher)
+    if (streamingData) {
+      const pageFormats: RawFormat[] = [
+        ...(streamingData.formats ?? []),
+        ...(streamingData.adaptiveFormats ?? []),
+      ];
+
+      for (const raw of pageFormats) {
+        if (!raw.url && !raw.signatureCipher) continue;
+        try {
+          const url = await decipherStreamUrl(raw.url, raw.signatureCipher, pageHtml);
+          if (!url) continue;
+          const parsed = new URL(url);
+          parsed.searchParams.set("cpn", cpn);
+          formats.push(this.buildFormat(raw, parsed.toString()));
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    // Second: get adaptive formats from MWEB client (returns direct URLs for all resolutions)
+    if (videoId) {
+      try {
+        const mwebFormats = await this.fetchMwebFormats(videoId, pageHtml, cpn);
+        // Add MWEB formats that we don't already have from the page response
+        const existingItags = new Set(formats.map((f) => f.format_id));
+        for (const f of mwebFormats) {
+          if (!existingItags.has(f.format_id)) {
+            formats.push(f);
+          }
+        }
+      } catch {
+        // MWEB failed, continue with what we have
+      }
+    }
+
+    return formats;
+  }
+
+  private async fetchMwebFormats(videoId: string, pageHtml: string, cpn: string): Promise<Format[]> {
+    // Extract visitor data from page
+    const vdMatch = pageHtml.match(/"visitorData":"([^"]+)"/);
+    const visitorData = vdMatch?.[1];
+
+    const body = {
+      videoId,
+      context: {
+        client: {
+          clientName: "MWEB",
+          clientVersion: "2.20250615.01.00",
+          hl: "en",
+          gl: "US",
+          visitorData,
+        },
+      },
+      contentCheckOk: true,
+      racyCheckOk: true,
+      playbackContext: {
+        contentPlaybackContext: { signatureTimestamp: 20619 },
+      },
+    };
+
+    const resp = await fetch(
+      "https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          "X-YouTube-Client-Name": "2",
+          "X-YouTube-Client-Version": "2.20250615.01.00",
+        },
+        body: JSON.stringify(body),
+      },
+    );
+
+    if (!resp.ok) return [];
+    const data = await resp.json() as PlayerResponse;
+    if (data.playabilityStatus?.status !== "OK") return [];
+
+    const allRaw: RawFormat[] = [
+      ...(data.streamingData?.formats ?? []),
+      ...(data.streamingData?.adaptiveFormats ?? []),
     ];
 
     const formats: Format[] = [];
-
-    for (const raw of allRawFormats) {
+    for (const raw of allRaw) {
       if (!raw.url && !raw.signatureCipher) continue;
-
       try {
         const url = await decipherStreamUrl(raw.url, raw.signatureCipher, pageHtml);
         if (!url) continue;
-
         const parsed = new URL(url);
         parsed.searchParams.set("cpn", cpn);
-
         formats.push(this.buildFormat(raw, parsed.toString()));
       } catch {
         continue;
