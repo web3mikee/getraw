@@ -1,6 +1,7 @@
 import { BaseExtractor, ExtractorError } from "../../core/types";
 import type { InfoDict, Format, Thumbnail } from "../../core/types";
 import { parseCaptionTracks } from "./captions";
+import { InnerTubeClient } from "./innertube";
 import type { RawFormat, PlayerResponse, StreamingData } from "./innertube";
 import { decipherStreamUrl, setPageHtmlForPlayerExtraction } from "./player";
 
@@ -132,83 +133,62 @@ export class YouTubeExtractor extends BaseExtractor {
       }
     }
 
-    // Second: get adaptive formats from MWEB client (returns direct URLs for all resolutions)
     if (videoId) {
       try {
-        const mwebFormats = await this.fetchMwebFormats(videoId, pageHtml, cpn);
-        // Add MWEB formats that we don't already have from the page response
+        const iosFormats = await this.fetchIosFormats(videoId, pageHtml, cpn);
         const existingItags = new Set(formats.map((f) => f.format_id));
-        for (const f of mwebFormats) {
+        for (const f of iosFormats) {
           if (!existingItags.has(f.format_id)) {
             formats.push(f);
           }
         }
       } catch {
-        // MWEB failed, continue with what we have
+        // IOS client failed, continue with page formats
       }
     }
 
     return formats;
   }
 
-  private async fetchMwebFormats(videoId: string, pageHtml: string, cpn: string): Promise<Format[]> {
-    // Extract visitor data from page
-    const vdMatch = pageHtml.match(/"visitorData":"([^"]+)"/);
-    const visitorData = vdMatch?.[1];
+  private async fetchIosFormats(videoId: string, pageHtml: string, cpn: string): Promise<Format[]> {
+    const iosClient = InnerTubeClient.withClient("IOS");
+    let response: PlayerResponse;
+    try {
+      response = await iosClient.getPlayerResponse(videoId);
+    } catch {
+      const androidClient = InnerTubeClient.withClient("ANDROID");
+      response = await androidClient.getPlayerResponse(videoId);
+    }
 
-    const body = {
-      videoId,
-      context: {
-        client: {
-          clientName: "MWEB",
-          clientVersion: "2.20250615.01.00",
-          hl: "en",
-          gl: "US",
-          visitorData,
-        },
-      },
-      contentCheckOk: true,
-      racyCheckOk: true,
-      playbackContext: {
-        contentPlaybackContext: { signatureTimestamp: 20619 },
-      },
-    };
-
-    const resp = await fetch(
-      "https://www.youtube.com/youtubei/v1/player?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          "X-YouTube-Client-Name": "2",
-          "X-YouTube-Client-Version": "2.20250615.01.00",
-        },
-        body: JSON.stringify(body),
-      },
-    );
-
-    if (!resp.ok) return [];
-    const data = await resp.json() as PlayerResponse;
-    if (data.playabilityStatus?.status !== "OK") return [];
+    if (response.playabilityStatus?.status !== "OK") return [];
 
     const allRaw: RawFormat[] = [
-      ...(data.streamingData?.formats ?? []),
-      ...(data.streamingData?.adaptiveFormats ?? []),
+      ...(response.streamingData?.formats ?? []),
+      ...(response.streamingData?.adaptiveFormats ?? []),
     ];
 
     const formats: Format[] = [];
+    const IOS_UA = "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)";
+
     for (const raw of allRaw) {
-      if (!raw.url && !raw.signatureCipher) continue;
+      if (!raw.url) continue;
+      let finalUrl: string;
       try {
-        const url = await decipherStreamUrl(raw.url, raw.signatureCipher, pageHtml);
-        if (!url) continue;
-        const parsed = new URL(url);
-        parsed.searchParams.set("cpn", cpn);
-        formats.push(this.buildFormat(raw, parsed.toString()));
+        const deciphered = await decipherStreamUrl(raw.url, undefined, pageHtml);
+        finalUrl = deciphered ?? raw.url;
       } catch {
-        continue;
+        finalUrl = raw.url;
       }
+
+      const parsed = new URL(finalUrl);
+      parsed.searchParams.set("cpn", cpn);
+      const format = this.buildFormat(raw, parsed.toString());
+      format.http_headers = {
+        "User-Agent": IOS_UA,
+        "Origin": "https://www.youtube.com",
+        "Referer": "https://www.youtube.com/",
+      };
+      formats.push(format);
     }
 
     return formats;

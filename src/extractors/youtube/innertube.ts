@@ -122,6 +122,13 @@ const CLIENTS: Record<string, ClientContext> = {
     apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
     clientId: 85,
   },
+  IOS: {
+    clientName: "IOS",
+    clientVersion: "19.45.4",
+    userAgent: "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 17_5_1 like Mac OS X;)",
+    apiKey: "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc",
+    clientId: 5,
+  },
 };
 
 const PLAYER_ENDPOINT = "https://www.youtube.com/youtubei/v1/player";
@@ -132,7 +139,7 @@ export class InnerTubeClient {
   private context: ClientContext;
   private signatureTimestamp: number;
 
-  constructor(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED" = "WEB", signatureTimestamp = 20073) {
+  constructor(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED" | "IOS" = "WEB", signatureTimestamp = 20073) {
     this.clientName = clientName;
     this.context = CLIENTS[clientName];
     this.signatureTimestamp = signatureTimestamp;
@@ -222,6 +229,13 @@ export class InnerTubeClient {
       contentCheckOk: true,
       racyCheckOk: true,
     };
+
+    if (this.clientName === "IOS") {
+      clientContext.deviceMake = "Apple";
+      clientContext.deviceModel = "iPhone16,2";
+      clientContext.osName = "iPhone";
+      clientContext.osVersion = "17.5.1.21F90";
+    }
 
     if (this.clientName === "TVHTML5_EMBED" && embedUrl) {
       (body.context as Record<string, unknown>).thirdParty = {
@@ -324,7 +338,7 @@ export class InnerTubeClient {
     this.signatureTimestamp = sts;
   }
 
-  static withClient(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED", signatureTimestamp?: number): InnerTubeClient {
+  static withClient(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED" | "IOS", signatureTimestamp?: number): InnerTubeClient {
     return new InnerTubeClient(clientName, signatureTimestamp);
   }
 }
