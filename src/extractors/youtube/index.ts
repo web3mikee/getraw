@@ -60,14 +60,20 @@ export class YouTubeExtractor extends BaseExtractor {
       throw new ExtractorError("No video details in player response");
     }
 
-    let formats = await this.extractFormats(playerResponse, webClient, videoId);
+    // Try ANDROID client first — more reliable direct URLs without signature issues
+    const androidClient = InnerTubeClient.withClient("ANDROID");
+    const androidResponse = await androidClient.getPlayerResponse(videoId);
+    let formats: Format[] = [];
 
+    if (androidResponse.streamingData) {
+      formats = androidClient.parseFormats(androidResponse.streamingData);
+      // Filter out formats with empty URLs
+      formats = formats.filter((f) => f.url && f.url.startsWith("http"));
+    }
+
+    // Fall back to WEB client with signature deciphering if ANDROID fails
     if (formats.length === 0) {
-      const androidClient = InnerTubeClient.withClient("ANDROID");
-      const androidResponse = await androidClient.getPlayerResponse(videoId);
-      if (androidResponse.streamingData) {
-        formats = androidClient.parseFormats(androidResponse.streamingData);
-      }
+      formats = await this.extractFormats(playerResponse, webClient, videoId);
     }
 
     const info = this.buildInfoDict(videoId, videoDetails, playerResponse, formats);
@@ -107,6 +113,28 @@ export class YouTubeExtractor extends BaseExtractor {
     const needsDecipher = this.formatsNeedDecipher(streamingData);
     if (needsDecipher) {
       formats = await this.decipherFormats(formats, streamingData, videoId);
+    }
+
+    // Always apply nsig transform to prevent throttling
+    const hasUrlFormats = formats.some((f) => f.url && f.url.includes("&n="));
+    if (hasUrlFormats && !needsDecipher) {
+      try {
+        const playerJsUrl = await this.getPlayerJsUrl(videoId);
+        if (playerJsUrl) {
+          const playerJs = await fetchPlayerJs(playerJsUrl);
+          for (let i = 0; i < formats.length; i++) {
+            if (formats[i].url) {
+              try {
+                formats[i].url = transformNsig(formats[i].url, playerJs);
+              } catch {
+                // nsig transform failed, URL may be throttled
+              }
+            }
+          }
+        }
+      } catch {
+        // player JS fetch failed, proceed with original URLs
+      }
     }
 
     return formats;
