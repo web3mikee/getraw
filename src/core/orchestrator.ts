@@ -102,7 +102,7 @@ export class Orchestrator {
           ? `${filepath}.f${format.format_id}.${format.ext}`
           : filepath;
 
-      await downloader.download(targetPath, format.url, {
+      await downloader.download(format.url, targetPath, {
         headers: { ...info.http_headers, ...format.http_headers },
         rateLimit: options.rateLimit,
         retries: options.retries,

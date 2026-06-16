@@ -10,11 +10,13 @@
     "dev": "bun run src/cli/index.ts",
     "test": "bun test",
     "build": "bun build src/cli/index.ts --compile --outfile=getraw",
-    "dashboard": "bun run tools/dashboard.ts"
+    "dashboard": "bun run tools/dashboard.ts",
+    "postinstall": "bun run scripts/patch-youtubei.js"
   },
   "dependencies": {
     "hls-parser": "^0.13.6",
-    "mpd-parser": "^1.3.0"
+    "mpd-parser": "^1.3.0",
+    "youtubei.js": "^17.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest"
