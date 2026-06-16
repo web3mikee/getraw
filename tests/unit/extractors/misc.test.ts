@@ -894,8 +894,8 @@ describe("GoogleDriveExtractor parsing", () => {
     expect(info.id).toBe("1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs");
     expect(info.title).toBe("test-video");
     expect(info.ext).toBe("mp4");
-    expect(info.formats![0].url).toContain("drive.google.com/uc");
     expect(info.formats![0].url).toContain("export=download");
+    expect(info.formats![0].url).toContain("1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs");
     expect(info.formats![0].filesize).toBe(10485760);
   });
 
