@@ -41,3 +41,4 @@ jobs:
             --generate-notes
         env:
           GH_TOKEN: ${{ github.token }}
+
