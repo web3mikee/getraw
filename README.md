@@ -1,4 +1,4 @@
-# dlpx
+# getraw
 
 Fast media downloader CLI built natively in Bun/TypeScript.
 
@@ -7,14 +7,14 @@ Fast media downloader CLI built natively in Bun/TypeScript.
 ### Global install (Bun required)
 
 ```sh
-bun install -g dlpx
+bun install -g getraw
 ```
 
 ### From source
 
 ```sh
-git clone https://github.com/web3mikee/dlpx
-cd dlpx
+git clone https://github.com/web3mikee/getraw
+cd getraw
 bun install
 ```
 
@@ -28,7 +28,7 @@ Build a standalone binary:
 
 ```sh
 bun run build
-./dlpx <URL>
+./getraw <URL>
 ```
 
 ## Quick Start
@@ -36,37 +36,37 @@ bun run build
 Download a video at best quality:
 
 ```sh
-dlpx https://www.youtube.com/watch?v=dQw4w9WgXcQ
+getraw https://www.youtube.com/watch?v=dQw4w9WgXcQ
 ```
 
 Extract audio as MP3:
 
 ```sh
-dlpx -x --audio-format mp3 https://soundcloud.com/artist/track
+getraw -x --audio-format mp3 https://soundcloud.com/artist/track
 ```
 
 List all available formats before downloading:
 
 ```sh
-dlpx -F https://vimeo.com/123456789
+getraw -F https://vimeo.com/123456789
 ```
 
 Download a specific format and write subtitles:
 
 ```sh
-dlpx -f "bestvideo[height<=1080]+bestaudio" --write-subs --sub-langs en https://www.youtube.com/watch?v=dQw4w9WgXcQ
+getraw -f "bestvideo[height<=1080]+bestaudio" --write-subs --sub-langs en https://www.youtube.com/watch?v=dQw4w9WgXcQ
 ```
 
 Dump extracted metadata as JSON without downloading:
 
 ```sh
-dlpx -j https://www.reddit.com/r/videos/comments/abc123/some_post/
+getraw -j https://www.reddit.com/r/videos/comments/abc123/some_post/
 ```
 
 ## CLI Reference
 
 ```
-Usage: dlpx [OPTIONS] URL [URL...]
+Usage: getraw [OPTIONS] URL [URL...]
 ```
 
 | Flag | Short | Type | Default | Description |
@@ -87,7 +87,7 @@ Usage: dlpx [OPTIONS] URL [URL...]
 | `--rate-limit` | `-r` | number | none | Rate limit in bytes/sec |
 | `--proxy` | | string | none | Proxy URL |
 | `--cookies` | | string | none | Cookie file path |
-| `--user-agent` | | string | `dlpx/0.0.0` | Custom User-Agent |
+| `--user-agent` | | string | `getraw/0.0.0` | Custom User-Agent |
 | `--referer` | | string | none | Custom Referer header |
 | `--embed-thumbnail` | | boolean | false | Embed thumbnail in output file |
 | `--embed-subs` | | boolean | false | Embed subtitles in output file |
@@ -145,10 +145,10 @@ See [docs/supported-sites.md](docs/supported-sites.md) for full format and URL p
 Requires [Bun](https://bun.sh) v1.0 or later.
 
 ```sh
-git clone https://github.com/web3mikee/dlpx
-cd dlpx
+git clone https://github.com/web3mikee/getraw
+cd getraw
 bun install
-bun run build    # produces ./dlpx binary
+bun run build    # produces ./getraw binary
 ```
 
 Run tests:
