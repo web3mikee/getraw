@@ -3,7 +3,8 @@ import { parseArgs, printHelp } from "./options";
 import { Orchestrator } from "../core/orchestrator";
 import { logger } from "../core/logger";
 
-const VERSION = "0.0.0";
+import pkg from "../../package.json";
+const VERSION = pkg.version;
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);

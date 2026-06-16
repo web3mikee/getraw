@@ -41,8 +41,31 @@ export class YouTubeExtractor extends BaseExtractor {
   }
 
   private async extractVideo(videoId: string): Promise<InfoDict> {
-    const webClient = InnerTubeClient.withClient("WEB");
-    let playerResponse = await webClient.getPlayerResponse(videoId);
+    // Extract player response from watch page HTML (most reliable method)
+    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    const pageResponse = await fetch(watchUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
+
+    if (!pageResponse.ok) {
+      throw new ExtractorError(`Failed to fetch watch page: ${pageResponse.status}`);
+    }
+
+    const html = await pageResponse.text();
+    const playerMatch = html.match(/var\s+ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
+    if (!playerMatch) {
+      throw new ExtractorError("Could not extract player response from watch page");
+    }
+
+    let playerResponse: PlayerResponse;
+    try {
+      playerResponse = JSON.parse(playerMatch[1]);
+    } catch {
+      throw new ExtractorError("Failed to parse player response JSON");
+    }
 
     const status = playerResponse.playabilityStatus?.status;
     if (status === "LOGIN_REQUIRED" || status === "CONTENT_CHECK_REQUIRED") {
@@ -60,21 +83,8 @@ export class YouTubeExtractor extends BaseExtractor {
       throw new ExtractorError("No video details in player response");
     }
 
-    // Try ANDROID client first — more reliable direct URLs without signature issues
-    const androidClient = InnerTubeClient.withClient("ANDROID");
-    const androidResponse = await androidClient.getPlayerResponse(videoId);
-    let formats: Format[] = [];
-
-    if (androidResponse.streamingData) {
-      formats = androidClient.parseFormats(androidResponse.streamingData);
-      // Filter out formats with empty URLs
-      formats = formats.filter((f) => f.url && f.url.startsWith("http"));
-    }
-
-    // Fall back to WEB client with signature deciphering if ANDROID fails
-    if (formats.length === 0) {
-      formats = await this.extractFormats(playerResponse, webClient, videoId);
-    }
+    const webClient = InnerTubeClient.withClient("WEB");
+    const formats = await this.extractFormats(playerResponse, webClient, videoId);
 
     const info = this.buildInfoDict(videoId, videoDetails, playerResponse, formats);
     return info;

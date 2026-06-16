@@ -104,14 +104,14 @@ export interface BrowseResponse {
 const CLIENTS: Record<string, ClientContext> = {
   WEB: {
     clientName: "WEB",
-    clientVersion: "2.20240530.02.00",
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+    clientVersion: "2.20250615.01.00",
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
     apiKey: "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
   },
   ANDROID: {
     clientName: "ANDROID",
-    clientVersion: "19.29.37",
-    userAgent: "com.google.android.youtube/19.29.37 (Linux; U; Android 14) gzip",
+    clientVersion: "19.44.38",
+    userAgent: "com.google.android.youtube/19.44.38 (Linux; U; Android 14) gzip",
     apiKey: "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
     clientId: 3,
   },
