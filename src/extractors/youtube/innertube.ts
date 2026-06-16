@@ -130,22 +130,28 @@ const BROWSE_ENDPOINT = "https://www.youtube.com/youtubei/v1/browse";
 export class InnerTubeClient {
   private clientName: string;
   private context: ClientContext;
+  private signatureTimestamp: number;
 
-  constructor(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED" = "WEB") {
+  constructor(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED" = "WEB", signatureTimestamp = 20073) {
     this.clientName = clientName;
     this.context = CLIENTS[clientName];
+    this.signatureTimestamp = signatureTimestamp;
   }
 
-  async getPlayerResponse(videoId: string, embedUrl?: string): Promise<PlayerResponse> {
-    const body = this.buildPlayerBody(videoId, embedUrl);
+  async getPlayerResponse(videoId: string, embedUrl?: string, visitorData?: string): Promise<PlayerResponse> {
+    const body = this.buildPlayerBody(videoId, embedUrl, visitorData);
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": this.context.userAgent,
+      "X-YouTube-Client-Name": String(this.context.clientId ?? 1),
+      "X-YouTube-Client-Version": this.context.clientVersion,
+    };
+    if (visitorData) {
+      headers["X-Goog-Visitor-Id"] = visitorData;
+    }
     const response = await fetch(`${PLAYER_ENDPOINT}?key=${this.context.apiKey}&prettyPrint=false`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": this.context.userAgent,
-        "X-YouTube-Client-Name": String(this.context.clientId ?? 1),
-        "X-YouTube-Client-Version": this.context.clientVersion,
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -193,20 +199,24 @@ export class InnerTubeClient {
     return response.json() as Promise<BrowseResponse>;
   }
 
-  private buildPlayerBody(videoId: string, embedUrl?: string): Record<string, unknown> {
+  private buildPlayerBody(videoId: string, embedUrl?: string, visitorData?: string): Record<string, unknown> {
+    const clientContext: Record<string, unknown> = {
+      clientName: this.context.clientName,
+      clientVersion: this.context.clientVersion,
+      hl: "en",
+      gl: "US",
+    };
+    if (visitorData) {
+      clientContext.visitorData = visitorData;
+    }
     const body: Record<string, unknown> = {
       videoId,
       context: {
-        client: {
-          clientName: this.context.clientName,
-          clientVersion: this.context.clientVersion,
-          hl: "en",
-          gl: "US",
-        },
+        client: clientContext,
       },
       playbackContext: {
         contentPlaybackContext: {
-          signatureTimestamp: 20073,
+          signatureTimestamp: this.signatureTimestamp,
         },
       },
       contentCheckOk: true,
@@ -310,8 +320,12 @@ export class InnerTubeClient {
     return { subtitles, automatic_captions };
   }
 
-  static withClient(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED"): InnerTubeClient {
-    return new InnerTubeClient(clientName);
+  setSignatureTimestamp(sts: number): void {
+    this.signatureTimestamp = sts;
+  }
+
+  static withClient(clientName: "WEB" | "ANDROID" | "TVHTML5_EMBED", signatureTimestamp?: number): InnerTubeClient {
+    return new InnerTubeClient(clientName, signatureTimestamp);
   }
 }
 

@@ -1,41 +1,49 @@
 import { BaseExtractor, ExtractorError } from "../../core/types";
 import type { InfoDict, Format, Thumbnail } from "../../core/types";
 import { parseCaptionTracks } from "./captions";
+import type { RawFormat, PlayerResponse, StreamingData } from "./innertube";
+import { decipherStreamUrl, setPageHtmlForPlayerExtraction } from "./player";
 
 const VALID_URL = /^https?:\/\/(?:(?:www|m|music)\.)?(?:youtube\.com\/(?:watch\?.*v=|shorts\/|live\/|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
 const PLAYLIST_URL = /^https?:\/\/(?:(?:www|m|music)\.)?youtube\.com\/playlist\?.*list=([a-zA-Z0-9_-]+)/;
 const CHANNEL_URL = /^https?:\/\/(?:(?:www|m|music)\.)?youtube\.com\/(?:channel\/|@)([a-zA-Z0-9_-]+)/;
+
+const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
 
 function generateCpn(): string {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
   return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * 64)]).join("");
 }
 
-let _innertube: Awaited<ReturnType<typeof createInnertube>> | null = null;
-
-async function bunEvaluate(data: { output: string }) {
-  const fn = new Function(data.output);
-  return fn();
+interface PageData {
+  playerResponse: PlayerResponse;
+  html: string;
 }
 
-async function createInnertube() {
-  // Import youtubei.js — this loads the node.js platform which sets up all shims
-  const { Innertube, Platform } = await import("youtubei.js");
+async function fetchPageData(videoId: string): Promise<PageData> {
+  const resp = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  });
 
-  // Override only the eval shim with Bun-native JS execution
-  // Platform.shim is the live object that Player.decipher() reads from
-  if (Platform.shim) {
-    (Platform.shim as Record<string, unknown>).eval = bunEvaluate;
+  if (!resp.ok) {
+    throw new ExtractorError(`Failed to fetch YouTube page: ${resp.status}`);
   }
 
-  return Innertube.create({ generate_session_locally: true });
-}
+  const html = await resp.text();
+  setPageHtmlForPlayerExtraction(html);
 
-async function getInnertube() {
-  if (!_innertube) {
-    _innertube = await createInnertube();
+  const prMatch = html.match(/var\s+ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
+  if (!prMatch) {
+    throw new ExtractorError("Could not extract player response from page");
   }
-  return _innertube;
+
+  return {
+    playerResponse: JSON.parse(prMatch[1]) as PlayerResponse,
+    html,
+  };
 }
 
 export class YouTubeExtractor extends BaseExtractor {
@@ -54,16 +62,22 @@ export class YouTubeExtractor extends BaseExtractor {
   }
 
   private async extractVideo(videoId: string): Promise<InfoDict> {
-    const yt = await getInnertube();
-    const info = await yt.getInfo(videoId);
+    const pageData = await fetchPageData(videoId);
+    const playerResponse = pageData.playerResponse;
 
-    if (!info.basic_info.title) {
+    const status = playerResponse.playabilityStatus;
+    if (status?.status !== "OK") {
+      throw new ExtractorError(status?.reason ?? "Video unavailable");
+    }
+
+    const details = playerResponse.videoDetails;
+    if (!details?.title) {
       throw new ExtractorError("Could not extract video info");
     }
 
-    const formats = await this.extractFormats(info, yt);
+    const formats = await this.extractFormats(playerResponse.streamingData, pageData.html);
 
-    const thumbnails: Thumbnail[] = (info.basic_info.thumbnail ?? []).map((t: { url: string; width: number; height: number }) => ({
+    const thumbnails: Thumbnail[] = (details.thumbnail?.thumbnails ?? []).map((t) => ({
       url: t.url,
       width: t.width,
       height: t.height,
@@ -71,84 +85,50 @@ export class YouTubeExtractor extends BaseExtractor {
 
     const result: InfoDict = {
       id: videoId,
-      title: info.basic_info.title,
+      title: details.title,
       formats,
       thumbnails,
-      description: info.basic_info.short_description,
-      channel: info.basic_info.author,
-      channel_id: info.basic_info.channel_id,
-      duration: info.basic_info.duration,
-      view_count: info.basic_info.view_count,
+      description: details.shortDescription,
+      channel: details.author,
+      channel_id: details.channelId,
+      duration: parseInt(details.lengthSeconds, 10) || undefined,
+      view_count: parseInt(details.viewCount, 10) || undefined,
       webpage_url: `https://www.youtube.com/watch?v=${videoId}`,
-      live_status: info.basic_info.is_live ? "is_live" : "not_live",
+      live_status: details.isLive ? "is_live" : "not_live",
     };
 
-    // Extract captions from page response
-    const pageResponse = await this.fetchPagePlayerResponse(videoId);
-    if (pageResponse) {
-      const captionTracks = pageResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-      if (captionTracks?.length) {
-        const { subtitles, automatic_captions } = parseCaptionTracks(captionTracks);
-        result.subtitles = subtitles;
-        result.automatic_captions = automatic_captions;
-      }
+    const captionTracks = playerResponse.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (captionTracks?.length) {
+      const { subtitles, automatic_captions } = parseCaptionTracks(captionTracks);
+      result.subtitles = subtitles;
+      result.automatic_captions = automatic_captions;
     }
 
     return result;
   }
 
-  private async extractFormats(info: { streaming_data?: { formats?: unknown[]; adaptive_formats?: unknown[] }; chooseFormat: (opts: { type: string; quality: string }) => unknown }, yt: { session: { player: unknown } }): Promise<Format[]> {
-    const formats: Format[] = [];
-    const player = yt.session.player;
-    const cpn = generateCpn();
+  private async extractFormats(streamingData: StreamingData | undefined, pageHtml: string): Promise<Format[]> {
+    if (!streamingData) return [];
 
-    const allFormats = [
-      ...(info.streaming_data?.formats ?? []),
-      ...(info.streaming_data?.adaptive_formats ?? []),
+    const cpn = generateCpn();
+    const allRawFormats: RawFormat[] = [
+      ...(streamingData.formats ?? []),
+      ...(streamingData.adaptiveFormats ?? []),
     ];
 
-    for (const raw of allFormats) {
-      const f = raw as Record<string, unknown>;
+    const formats: Format[] = [];
+
+    for (const raw of allRawFormats) {
+      if (!raw.url && !raw.signatureCipher) continue;
+
       try {
-        let url: string | undefined;
-
-        if (typeof (f as { decipher?: unknown }).decipher === "function") {
-          const deciphered = await (f as { decipher: (p: unknown) => Promise<unknown> }).decipher(player);
-          if (typeof deciphered === "string") {
-            const parsed = new URL(deciphered);
-            parsed.searchParams.set("cpn", cpn);
-            url = parsed.toString();
-          }
-        }
-
+        const url = await decipherStreamUrl(raw.url, raw.signatureCipher, pageHtml);
         if (!url) continue;
 
-        const mime = String(f.mime_type ?? "");
-        const mimeMatch = mime.match(/^(video|audio)\/(\w+);\s*codecs="([^"]+)"/);
-        const ext = mimeMatch?.[2] ?? "mp4";
-        const codecs = mimeMatch?.[3] ?? "";
-        const isVideo = mime.startsWith("video");
-        const isAudio = mime.startsWith("audio");
+        const parsed = new URL(url);
+        parsed.searchParams.set("cpn", cpn);
 
-        formats.push({
-          format_id: String(f.itag ?? ""),
-          url,
-          ext,
-          vcodec: isVideo ? codecs.split(",")[0]?.trim() : "none",
-          acodec: isAudio ? codecs : (isVideo && codecs.includes(",") ? codecs.split(",")[1]?.trim() : undefined),
-          width: (f.width as number) ?? undefined,
-          height: (f.height as number) ?? undefined,
-          fps: (f.fps as number) ?? undefined,
-          tbr: f.bitrate ? Math.round((f.bitrate as number) / 1000) : undefined,
-          filesize: f.content_length ? parseInt(String(f.content_length), 10) : undefined,
-          format_note: String(f.quality_label ?? f.quality ?? ""),
-          audio_channels: (f.audio_channels as number) ?? undefined,
-          http_headers: {
-            "Origin": "https://www.youtube.com",
-            "Referer": "https://www.youtube.com/",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-          },
-        });
+        formats.push(this.buildFormat(raw, parsed.toString()));
       } catch {
         continue;
       }
@@ -157,18 +137,38 @@ export class YouTubeExtractor extends BaseExtractor {
     return formats;
   }
 
-  private async fetchPagePlayerResponse(videoId: string): Promise<Record<string, unknown> | null> {
-    try {
-      const resp = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
-        },
-      });
-      const html = await resp.text();
-      const match = html.match(/var\s+ytInitialPlayerResponse\s*=\s*(\{.+?\});/s);
-      return match ? JSON.parse(match[1]) : null;
-    } catch {
-      return null;
+  private buildFormat(raw: RawFormat, url: string): Format {
+    const mime = raw.mimeType;
+    const mimeMatch = mime.match(/^(video|audio)\/(\w+);\s*codecs="([^"]+)"/);
+    const ext = mimeMatch?.[2] ?? "mp4";
+    const codecs = mimeMatch?.[3] ?? "";
+    const isVideo = mime.startsWith("video");
+    const isAudio = mime.startsWith("audio");
+
+    const format: Format = {
+      format_id: String(raw.itag),
+      url,
+      ext: isAudio && ext === "mp4" ? "m4a" : ext,
+      vcodec: isVideo ? codecs.split(",")[0]?.trim() : "none",
+      acodec: isAudio ? codecs : (isVideo && codecs.includes(",") ? codecs.split(",")[1]?.trim() : undefined),
+      width: raw.width,
+      height: raw.height,
+      fps: raw.fps,
+      tbr: raw.bitrate ? Math.round(raw.bitrate / 1000) : undefined,
+      filesize: raw.contentLength ? parseInt(raw.contentLength, 10) : undefined,
+      format_note: raw.qualityLabel ?? raw.quality ?? undefined,
+      audio_channels: raw.audioChannels,
+      http_headers: {
+        "Origin": "https://www.youtube.com",
+        "Referer": "https://www.youtube.com/",
+        "User-Agent": USER_AGENT,
+      },
+    };
+
+    if (raw.width && raw.height) {
+      format.resolution = `${raw.width}x${raw.height}`;
     }
+
+    return format;
   }
 }
