@@ -1,6 +1,6 @@
 {
   "name": "dlpx",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Fast media downloader CLI built natively in Bun/TypeScript",
   "type": "module",
   "bin": {
