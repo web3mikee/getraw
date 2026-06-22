@@ -32,5 +32,12 @@ export function sanitizeFilename(filename: string): string {
 }
 
 export function sanitizePath(path: string): string {
-  return path.split("/").map(sanitizeFilename).join("/");
+  return path
+    .split("/")
+    .map((part) => (part === "" ? "" : sanitizeFilename(part)))
+    .join("/");
+}
+
+export function sanitizeFieldValue(value: string): string {
+  return value.replace(ILLEGAL_CHARS, "_");
 }

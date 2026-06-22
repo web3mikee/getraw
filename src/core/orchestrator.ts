@@ -80,10 +80,18 @@ export class Orchestrator {
     info.ext = selectedFormats[0].ext;
 
     const filename = buildFilename(options.output, info);
-    const filepath = options.paths.home
-      ? `${options.paths.home}/${filename}`
-      : filename;
+    const filepath =
+      options.paths.home && !filename.startsWith("/")
+        ? `${options.paths.home}/${filename}`
+        : filename;
     info.filename = filepath;
+
+    const parentDir = filepath.includes("/")
+      ? filepath.slice(0, filepath.lastIndexOf("/"))
+      : "";
+    if (parentDir) {
+      await Bun.$`mkdir -p ${parentDir}`.quiet();
+    }
 
     logger.info(`Downloading: ${info.title}`);
     logger.debug(`Saving to: ${filepath}`);

@@ -1,5 +1,5 @@
 import type { InfoDict } from "./types";
-import { sanitizeFilename } from "../utils/sanitize";
+import { sanitizeFieldValue, sanitizePath } from "../utils/sanitize";
 
 const TEMPLATE_RE = /%\((\w+)\)([#0\- +]*)(\d*)(?:\.(\d+))?([sdiouxXeEfFgGcr%])/g;
 
@@ -19,7 +19,7 @@ export function renderTemplate(template: string, info: InfoDict): string {
       return String(Number(value));
     }
 
-    return String(value);
+    return sanitizeFieldValue(String(value));
   });
 }
 
@@ -54,5 +54,5 @@ function getField(info: InfoDict, key: string): string | number | undefined {
 
 export function buildFilename(template: string, info: InfoDict): string {
   const rendered = renderTemplate(template, info);
-  return sanitizeFilename(rendered);
+  return sanitizePath(rendered);
 }
