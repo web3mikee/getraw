@@ -1,6 +1,7 @@
 import { DownloadError } from "../core/types";
 import type { DownloadOptions, DownloadProgress } from "../core/types";
 import { logger } from "../core/logger";
+import { mkdirp, rmrf, readText, readBytes, writeFile, createWriter, siblingTempDir } from "../utils/runtime";
 
 export interface Segment {
   url: string;
@@ -24,13 +25,13 @@ export class FragmentDownloader {
     options: FragmentDownloadOptions,
   ): Promise<void> {
     const concurrency = options.concurrency ?? 8;
-    const tempDir = options.tempDir ?? "/tmp/getraw-fragments";
+    const tempDir = options.tempDir ?? siblingTempDir(outputPath, "frag");
 
-    await Bun.$`mkdir -p ${tempDir}`.quiet();
+    await mkdirp(tempDir);
 
     const stateFile = `${tempDir}/completed.json`;
     try {
-      const stateData = await Bun.file(stateFile).text();
+      const stateData = await readText(stateFile);
       const state = JSON.parse(stateData) as { completed: number[] };
       this.completedSegments = new Set(state.completed);
     } catch {
@@ -65,9 +66,9 @@ export class FragmentDownloader {
             data = await this.decryptAes128(data, seg.key, seg.index, keyCache, options.headers);
           }
 
-          await Bun.write(segPath, data);
+          await writeFile(segPath, data);
           this.completedSegments.add(seg.index);
-          await Bun.write(
+          await writeFile(
             stateFile,
             JSON.stringify({ completed: Array.from(this.completedSegments) }),
           );
@@ -102,7 +103,7 @@ export class FragmentDownloader {
     await this.concatenateSegments(segments, tempDir, outputPath);
 
     try {
-      await Bun.$`rm -rf ${tempDir}`.quiet();
+      await rmrf(tempDir);
     } catch {
       // ignore cleanup errors
     }
@@ -125,14 +126,14 @@ export class FragmentDownloader {
     tempDir: string,
     outputPath: string,
   ): Promise<void> {
-    const writer = Bun.file(outputPath).writer();
+    const writer = createWriter(outputPath);
     const ordered = segments.slice().sort((a, b) => a.index - b.index);
 
     for (const seg of ordered) {
       const segPath = `${tempDir}/seg-${seg.index.toString().padStart(6, "0")}`;
       try {
-        const data = await Bun.file(segPath).arrayBuffer();
-        writer.write(new Uint8Array(data));
+        const data = await readBytes(segPath);
+        writer.write(data);
       } catch (err) {
         throw new DownloadError(`Missing segment ${seg.index}: ${err instanceof Error ? err.message : String(err)}`);
       }

@@ -1,6 +1,7 @@
 import { PostProcessor, PostProcessError } from "../core/types";
 import type { InfoDict, PostProcessResult, Subtitle } from "../core/types";
 import { FFmpegRunner } from "./ffmpeg";
+import { writeFile } from "../utils/runtime";
 import { dirname, basename, extname, join } from "node:path";
 
 export type SubtitleFormat = "srt" | "ass" | "vtt" | "json3" | "lrc";
@@ -70,7 +71,7 @@ export class SubtitlePostProcessor extends PostProcessor {
       filesToDelete.push(convertedPath);
     } else {
       subPath = join(dir, `${stem}.${lang}.${sourceExt}`);
-      await Bun.write(subPath, subData);
+      await writeFile(subPath, subData);
       filesToDelete.push(subPath);
     }
 
@@ -115,12 +116,12 @@ async function convertSubtitle(
 ): Promise<void> {
   if ((fromExt === "json3" || toExt === "json3") || fromExt === "lrc" || toExt === "lrc") {
     const converted = convertNative(data, fromExt, toExt);
-    await Bun.write(outputPath, converted);
+    await writeFile(outputPath, converted);
     return;
   }
 
   const tmpInput = outputPath + ".tmp_in." + fromExt;
-  await Bun.write(tmpInput, data);
+  await writeFile(tmpInput, data);
 
   await runner.run(["-i", tmpInput, outputPath]);
 

@@ -2,6 +2,7 @@ import { Downloader, DownloadError } from "../core/types";
 import type { DownloadOptions } from "../core/types";
 import { FragmentDownloader } from "./fragment";
 import type { Segment } from "./fragment";
+import { siblingTempDir } from "../utils/runtime";
 import { logger } from "../core/logger";
 
 interface DashRepresentation {
@@ -119,7 +120,7 @@ export class DashDownloader extends Downloader {
       throw new DownloadError("No segments found in MPD");
     }
 
-    const tempDir = `/tmp/getraw-dash-${Date.now()}`;
+    const tempDir = siblingTempDir(filepath, "dash");
     const fragmenter = new FragmentDownloader();
     await fragmenter.downloadSegments(allSegments, filepath, {
       ...options,

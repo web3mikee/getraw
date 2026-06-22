@@ -1,6 +1,7 @@
 import { Downloader, DownloadError } from "../core/types";
 import type { DownloadOptions, DownloadProgress } from "../core/types";
 import { logger } from "../core/logger";
+import { mkdirp, rmrf, readBytes, writeFile, createWriter, fileSize, siblingTempDir } from "../utils/runtime";
 
 const CHUNK_SIZE = 8 * 1024 * 1024;
 const DEFAULT_CONCURRENCY = 4;
@@ -69,14 +70,9 @@ export class HttpDownloader extends Downloader {
 
     let existingBytes = 0;
     if (isResume) {
-      try {
-        const file = Bun.file(filepath);
-        existingBytes = file.size;
-        if (existingBytes > 0) {
-          headers["Range"] = `bytes=${existingBytes}-`;
-        }
-      } catch {
-        existingBytes = 0;
+      existingBytes = fileSize(filepath);
+      if (existingBytes > 0) {
+        headers["Range"] = `bytes=${existingBytes}-`;
       }
     }
 
@@ -101,7 +97,7 @@ export class HttpDownloader extends Downloader {
       throw new DownloadError("Empty response body");
     }
 
-    const writer = Bun.file(filepath).writer();
+    const writer = createWriter(filepath);
     const reader = body.getReader();
     let downloadedBytes = existingBytes;
     const startTime = Date.now();
@@ -174,8 +170,8 @@ export class HttpDownloader extends Downloader {
       chunks.push({ start: i, end: Math.min(i + CHUNK_SIZE - 1, totalBytes - 1), index: idx });
     }
 
-    const tempDir = `/tmp/getraw-http-${Date.now()}`;
-    await Bun.$`mkdir -p ${tempDir}`.quiet();
+    const tempDir = siblingTempDir(filepath, "http");
+    await mkdirp(tempDir);
 
     const baseHeaders = this.buildHeaders(options);
     let downloadedBytes = 0;
@@ -192,7 +188,7 @@ export class HttpDownloader extends Downloader {
             throw new DownloadError(`HTTP ${resp.status} on chunk ${chunk.index}`);
           }
           const data = new Uint8Array(await resp.arrayBuffer());
-          await Bun.write(`${tempDir}/chunk-${chunk.index.toString().padStart(6, "0")}`, data);
+          await writeFile(`${tempDir}/chunk-${chunk.index.toString().padStart(6, "0")}`, data);
 
           downloadedBytes += data.byteLength;
 
@@ -232,14 +228,14 @@ export class HttpDownloader extends Downloader {
     }
     await Promise.all(workers);
 
-    const writer = Bun.file(filepath).writer();
+    const writer = createWriter(filepath);
     for (const chunk of chunks) {
-      const data = await Bun.file(`${tempDir}/chunk-${chunk.index.toString().padStart(6, "0")}`).arrayBuffer();
-      writer.write(new Uint8Array(data));
+      const data = await readBytes(`${tempDir}/chunk-${chunk.index.toString().padStart(6, "0")}`);
+      writer.write(data);
     }
     await writer.end();
 
-    await Bun.$`rm -rf ${tempDir}`.quiet();
+    await rmrf(tempDir);
 
     if (options.onProgress) {
       options.onProgress({

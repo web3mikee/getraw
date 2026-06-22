@@ -1,6 +1,7 @@
 import { PostProcessor, PostProcessError } from "../core/types";
 import type { InfoDict, PostProcessResult } from "../core/types";
 import { FFmpegRunner } from "./ffmpeg";
+import { writeFile } from "../utils/runtime";
 import { dirname, basename, extname, join } from "node:path";
 
 export type ThumbnailFormat = "jpg" | "png" | "webp";
@@ -65,7 +66,7 @@ async function downloadThumbnail(url: string, dest: string): Promise<void> {
   const res = await fetch(url);
   if (!res.ok) throw new PostProcessError(`Failed to download thumbnail: HTTP ${res.status}`);
   const buffer = await res.arrayBuffer();
-  await Bun.file(dest).writer().write(new Uint8Array(buffer));
+  await writeFile(dest, new Uint8Array(buffer));
 }
 
 async function embedInAudio(

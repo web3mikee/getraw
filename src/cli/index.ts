@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { parseArgs, printHelp } from "./options";
 import { Orchestrator } from "../core/orchestrator";
 import { logger } from "../core/logger";

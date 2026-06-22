@@ -2,6 +2,7 @@ import { Downloader, DownloadError } from "../core/types";
 import type { DownloadOptions } from "../core/types";
 import { FragmentDownloader } from "./fragment";
 import type { Segment } from "./fragment";
+import { siblingTempDir } from "../utils/runtime";
 import { logger } from "../core/logger";
 
 interface HlsKey {
@@ -154,7 +155,7 @@ export class HlsDownloader extends Downloader {
       segments.push(seg);
     }
 
-    const tempDir = `/tmp/getraw-hls-${Date.now()}`;
+    const tempDir = siblingTempDir(filepath, "hls");
     const fragmenter = new FragmentDownloader();
     await fragmenter.downloadSegments(segments, filepath, {
       ...options,

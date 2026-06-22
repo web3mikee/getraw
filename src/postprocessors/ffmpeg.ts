@@ -1,4 +1,5 @@
 import { PostProcessError } from "../core/types";
+import { runCapture, spawnStderr } from "../utils/runtime";
 
 export interface FFmpegProgress {
   frame?: number;
@@ -24,7 +25,7 @@ export class FFmpegRunner {
 
     for (const candidate of candidates) {
       try {
-        const result = await Bun.$`${candidate} -version`.quiet();
+        const result = await runCapture(candidate, ["-version"]);
         if (result.exitCode === 0) {
           return new FFmpegRunner(candidate);
         }
@@ -40,19 +41,17 @@ export class FFmpegRunner {
 
   async checkCapabilities(): Promise<{ codecs: string[]; formats: string[] }> {
     const [codecResult, formatResult] = await Promise.all([
-      Bun.$`${this.binary} -codecs -v quiet`.quiet(),
-      Bun.$`${this.binary} -formats -v quiet`.quiet(),
+      runCapture(this.binary, ["-codecs", "-v", "quiet"]),
+      runCapture(this.binary, ["-formats", "-v", "quiet"]),
     ]);
 
     const codecs = codecResult.stdout
-      .toString()
       .split("\n")
       .filter((l) => /^\s*[D.][E.][VASD.][I.][L.][S.]/.test(l))
       .map((l) => l.trim().split(/\s+/)[1])
       .filter(Boolean) as string[];
 
     const formats = formatResult.stdout
-      .toString()
       .split("\n")
       .filter((l) => /^\s*[D.][E.]/.test(l))
       .map((l) => l.trim().split(/\s+/)[1])
@@ -66,40 +65,27 @@ export class FFmpegRunner {
     onProgress?: ProgressCallback,
     durationSeconds?: number,
   ): Promise<void> {
-    const proc = Bun.spawn([this.binary, "-y", ...args], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-
-    const stderrChunks: Uint8Array[] = [];
     const decoder = new TextDecoder();
     let partialLine = "";
 
-    if (proc.stderr) {
-      const reader = proc.stderr.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        stderrChunks.push(value);
-
-        if (onProgress) {
-          partialLine += decoder.decode(value, { stream: true });
-          const lines = partialLine.split("\r");
-          partialLine = lines[lines.length - 1];
-          for (const line of lines.slice(0, -1)) {
-            const progress = parseFFmpegProgress(line, durationSeconds);
-            if (progress) onProgress(progress);
-          }
+    const { exitCode, stderr } = await spawnStderr(
+      this.binary,
+      ["-y", ...args],
+      (value) => {
+        if (!onProgress) return;
+        partialLine += decoder.decode(value, { stream: true });
+        const lines = partialLine.split("\r");
+        partialLine = lines[lines.length - 1];
+        for (const line of lines.slice(0, -1)) {
+          const progress = parseFFmpegProgress(line, durationSeconds);
+          if (progress) onProgress(progress);
         }
-      }
-    }
+      },
+    );
 
-    await proc.exited;
-
-    if (proc.exitCode !== 0) {
-      const stderr = stderrChunks.map((c) => decoder.decode(c)).join("");
+    if (exitCode !== 0) {
       const lastLines = stderr.split("\n").slice(-5).join("\n");
-      throw new PostProcessError(`FFmpeg failed (exit ${proc.exitCode}):\n${lastLines}`);
+      throw new PostProcessError(`FFmpeg failed (exit ${exitCode}):\n${lastLines}`);
     }
   }
 

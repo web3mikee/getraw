@@ -5,6 +5,7 @@ import { getDownloader } from "../downloaders/base";
 import { runPostProcessors } from "../postprocessors/base";
 import { selectFormats, formatFormatTable } from "./format-sorter";
 import { buildFilename } from "./output-template";
+import { mkdirp } from "../utils/runtime";
 import { logger } from "./logger";
 
 export class Orchestrator {
@@ -90,7 +91,7 @@ export class Orchestrator {
       ? filepath.slice(0, filepath.lastIndexOf("/"))
       : "";
     if (parentDir) {
-      await Bun.$`mkdir -p ${parentDir}`.quiet();
+      await mkdirp(parentDir);
     }
 
     logger.info(`Downloading: ${info.title}`);
