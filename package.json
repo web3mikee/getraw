@@ -1,11 +1,16 @@
 {
   "name": "getraw",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Fast media downloader CLI built natively in Bun/TypeScript",
   "type": "module",
   "bin": {
     "getraw": "./src/cli/index.ts"
   },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "bun run src/cli/index.ts",
     "test": "bun test",

@@ -1,5 +1,7 @@
 node_modules/
 dist/
+getraw
+getraw-*
 .env
 *.log
 .DS_Store
